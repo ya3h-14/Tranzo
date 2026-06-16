@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/Card";
 import {
   Package, Truck, Users, Activity, IndianRupee, Loader2,
@@ -31,6 +32,7 @@ const chartPoints = [
 ];
 
 export function AdminDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -181,7 +183,7 @@ export function AdminDashboard() {
 
               {/* Background Accent */}
               <div className="absolute -bottom-2 -right-2 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-                 {React.cloneElement(stat.icon as React.ReactElement, { size: 80 })}
+                 {React.cloneElement(stat.icon as React.ReactElement<any>, { size: 80 })}
               </div>
             </CardContent>
           </Card>

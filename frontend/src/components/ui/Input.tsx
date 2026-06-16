@@ -19,7 +19,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <div className="relative group">
           {icon && (
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-amber-600 transition-colors">
-              {React.cloneElement(icon as React.ReactElement, { size: 16 })}
+              {React.cloneElement(icon as React.ReactElement<any>, { size: 16 })}
             </div>
           )}
           <input

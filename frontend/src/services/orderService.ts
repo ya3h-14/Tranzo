@@ -9,15 +9,14 @@ export const orderService = {
         resolve([
           {
             id: "ORD-001",
-            pickup: "123 Main St, NY",
-            drop: "456 Market St, NY",
-            goodsType: "Electronics",
-            weight: 50,
-            status: "completed",
+            pickup_address: "123 Main St, NY",
+            dropoff_address: "456 Market St, NY",
+            package_details: "Electronics - 50kg",
+            status: "delivered",
             price: 120,
-            date: "2023-10-25",
-            vehicle: "Mini Truck",
-            distance: 12.5,
+            created_at: "2023-10-25",
+            vehicle_requested: "Mini Truck",
+            distance_km: 12.5,
           },
         ]);
       }, 1000);
@@ -33,7 +32,7 @@ export const orderService = {
           ...data,
           id: `ORD-${Math.floor(Math.random() * 1000)}`,
           status: "pending",
-          date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
         } as Order);
       }, 1000);
     });

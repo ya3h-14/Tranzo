@@ -152,7 +152,7 @@ export function DriverHistory() {
 
               {/* Background Accent */}
               <div className="absolute -bottom-2 -right-2 opacity-[0.03] group-hover:opacity-10 transition-opacity">
-                 {React.cloneElement(stat.icon as React.ReactElement, { size: 60 })}
+                 {React.cloneElement(stat.icon as React.ReactElement<any>, { size: 60 })}
               </div>
             </CardContent>
           </Card>
