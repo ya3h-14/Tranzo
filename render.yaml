@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: tranzo-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tranzo-db
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://your-app.vercel.app
+      - key: EMAIL_HOST_USER
+        value: tranzosupport@gmail.com
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+
+databases:
+  - name: tranzo-db
+    databaseName: tranzo
+    user: tranzo_user
+    plan: free
