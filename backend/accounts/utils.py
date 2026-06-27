@@ -42,3 +42,30 @@ def send_otp_email(email, name, otp):
     except Exception as e:
         logger.error(f"Failed to send HTML OTP email to {email}: {str(e)}")
         return False
+
+def send_password_reset_email(email, name, otp):
+    """
+    Sends a password reset OTP email using a dedicated template.
+    Returns True if successful, False otherwise.
+    """
+    subject = f"Reset your TRANZO password - {otp}"
+
+    context = {
+        'name': name,
+        'otp': otp,
+    }
+
+    html_content = render_to_string('password_reset_email.html', context)
+    text_content = strip_tags(html_content)
+
+    email_from = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [email]
+
+    try:
+        msg = EmailMultiAlternatives(subject, text_content, email_from, recipient_list)
+        msg.attach_alternative(html_content, "text/html")
+        msg.send(fail_silently=False)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {email}: {str(e)}")
+        return False

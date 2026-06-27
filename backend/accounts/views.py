@@ -17,7 +17,7 @@ from .serializers import (
     RegisterCustomerSerializer,
     RegisterDriverSerializer
 )
-from .utils import generate_otp, send_otp_email
+from .utils import generate_otp, send_otp_email, send_password_reset_email
 from drivers.models import DriverProfile
 
 logger = logging.getLogger(__name__)
@@ -295,3 +295,72 @@ def request_password_change(request):
     }, timeout=900)
 
     return Response({"message": "OTP sent to your email for verification."}, status=200)
+
+@extend_schema(request=dict, responses={200: dict})
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def forgot_password(request):
+    """Sends a password reset OTP to the user's registered email (unauthenticated)."""
+    email = request.data.get("email")
+
+    if not email:
+        return Response({"error": "Email is required."}, status=400)
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({"error": "No account found with this email address."}, status=404)
+
+    otp = generate_otp()
+    email_sent = send_password_reset_email(email, user.name, otp)
+
+    if not email_sent:
+        return Response({"error": "Failed to send reset email. Please try again later."}, status=500)
+
+    cache_key = f"forgot_password_otp_{email}"
+    cache.set(cache_key, {
+        "otp": otp,
+        "created_at": timezone.now().timestamp()
+    }, timeout=900)
+
+    return Response({"message": "Password reset code sent to your email."}, status=200)
+
+@extend_schema(request=dict, responses={200: dict})
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@authentication_classes([])
+def reset_password(request):
+    """Verifies OTP and resets the user's password (unauthenticated)."""
+    email = request.data.get("email")
+    otp = request.data.get("otp")
+    new_password = request.data.get("new_password")
+
+    if not email or not otp or not new_password:
+        return Response({"error": "Email, OTP, and new password are required."}, status=400)
+
+    if len(new_password) < 6:
+        return Response({"error": "Password must be at least 6 characters."}, status=400)
+
+    cache_key = f"forgot_password_otp_{email}"
+    cached_data = cache.get(cache_key)
+
+    if not cached_data:
+        return Response({"error": "No reset request found or code has expired. Please request a new one."}, status=400)
+
+    if cached_data["otp"] != otp:
+        return Response({"error": "Invalid verification code."}, status=400)
+
+    # Check expiry (10 mins)
+    if (timezone.now().timestamp() - cached_data["created_at"]) > 600:
+        cache.delete(cache_key)
+        return Response({"error": "Verification code has expired. Please request a new one."}, status=400)
+
+    try:
+        user = User.objects.get(email=email)
+        user.set_password(new_password)
+        user.save()
+        cache.delete(cache_key)
+        return Response({"message": "Password reset successfully! You can now sign in with your new password."}, status=200)
+    except User.DoesNotExist:
+        return Response({"error": "User not found."}, status=404)

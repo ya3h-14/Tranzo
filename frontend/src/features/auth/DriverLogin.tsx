@@ -111,6 +111,16 @@ export function DriverLogin() {
             </Button>
           </form>
 
+          <div className="mt-4 text-center">
+            <Link
+              to="/auth/forgot-password"
+              state={{ returnTo: "/auth/partner/login" }}
+              className="text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+
           <div className="mt-6 text-center text-sm space-y-4">
             {activeTab === 'driver' && (
               <div className="text-slate-500 font-medium">

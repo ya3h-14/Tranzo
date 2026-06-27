@@ -16,6 +16,7 @@ import { DriverLogin } from "./features/auth/DriverLogin";
 import { DriverRegister } from "./features/auth/DriverRegister";
 import { AdminLogin } from "./features/auth/AdminLogin";
 import { VerifyOtp } from "./features/auth/VerifyOtp";
+import { ForgotPassword } from "./features/auth/ForgotPassword";
 
 // Customer
 import { HomePage } from "./features/customer/HomePage";
@@ -58,6 +59,7 @@ export default function App() {
 
         <Route path="/auth/driver/register" element={<DriverRegister />} />
         <Route path="/auth/verify-otp" element={<VerifyOtp />} />
+        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
 
         {/* Customer Routes */}
         <Route path="/customer" element={

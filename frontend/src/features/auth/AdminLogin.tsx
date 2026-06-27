@@ -85,6 +85,16 @@ export function AdminLogin() {
             </Button>
           </form>
 
+          <div className="mt-4 text-center">
+            <Link
+              to="/auth/forgot-password"
+              state={{ returnTo: "/auth/admin/login" }}
+              className="text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+
           <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
