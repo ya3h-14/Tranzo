@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 // In production this will be set to your Render backend URL via VITE_API_URL
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -27,8 +28,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      useAuthStore.getState().logout();
       if (!window.location.pathname.includes('/auth/')) {
         window.location.href = '/login';
       }

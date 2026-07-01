@@ -52,6 +52,16 @@ class Order(models.Model):
         default='pending'
     )
 
+    # Payment Fields
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[('pending', 'Pending'), ('successful', 'Successful'), ('failed', 'Failed')],
+        default='pending'
+    )
+    razorpay_order_id = models.CharField(max_length=100, null=True, blank=True)
+    razorpay_payment_id = models.CharField(max_length=100, null=True, blank=True)
+    razorpay_signature = models.CharField(max_length=255, null=True, blank=True)
+
     # Billing Fields
     price = models.DecimalField(max_digits=10, decimal_places=2)
     platform_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
