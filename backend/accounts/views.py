@@ -149,6 +149,10 @@ def verify_otp(request):
             user = User.objects.get(email=email)
             if user.is_verified:
                 return Response({"error": "User is already verified. Please login."}, status=400)
+            # Unverified legacy user with no pending registration data in cache -
+            # nothing to verify against, so bail out cleanly instead of falling
+            # through to reg_data["otp"] below (which would be None).
+            return Response({"error": "Your verification code has expired. Please register again."}, status=400)
         except User.DoesNotExist:
             return Response({"error": "No pending registration found for this email. Please register again."}, status=400)
 
