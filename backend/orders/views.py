@@ -5,7 +5,7 @@ from .models import Order
 from .serializers import OrderSerializer
 from drivers.models import DriverProfile, VehicleCategory
 from decimal import Decimal
-from accounts.permissions import IsAdmin
+from accounts.permissions import IsAdmin, IsDriver
 
 class CustomerOrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
@@ -43,7 +43,7 @@ class CustomerOrderViewSet(viewsets.ModelViewSet):
 
 class DriverOrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsDriver]
 
     def get_queryset(self):
         # 1. Orders assigned to this driver
