@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import User
 from drivers.models import DriverProfile
 from drf_spectacular.utils import extend_schema_field
@@ -80,6 +82,13 @@ class RegisterCustomerSerializer(serializers.ModelSerializer):
         model = User
         fields = ["name", "email", "password", "phone_number"]
 
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
+
     def create(self, validated_data):
         return User.objects.create_user(
             role='customer',
@@ -92,6 +101,13 @@ class RegisterDriverSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["name", "email", "password", "phone_number", "city"]
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        return value
 
     def create(self, validated_data):
         user = User.objects.create_user(

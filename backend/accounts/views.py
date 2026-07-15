@@ -8,6 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 from django.core.cache import cache
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import User
 from .serializers import (
@@ -38,19 +40,16 @@ def register_customer(request):
     if serializer.is_valid():
         email = serializer.validated_data["email"]
 
-        # Check if user already exists
         if User.objects.filter(email=email).exists():
             return Response({"error": "A user with this email already exists."}, status=400)
 
         otp = generate_otp()
 
-        # Send email BEFORE creating database record
         email_sent = send_otp_email(email, serializer.validated_data["name"], otp)
 
         if not email_sent:
             return Response({"error": "Failed to send verification email. Please check if the email address is valid."}, status=400)
 
-        # Temporarily store registration data in cache (expires in 15 mins)
         cache_key = f"registration_{email}"
         registration_data = {
             "data": serializer.validated_data,
@@ -76,19 +75,16 @@ def register_driver(request):
     if serializer.is_valid():
         email = serializer.validated_data["email"]
 
-        # Check if user already exists
         if User.objects.filter(email=email).exists():
             return Response({"error": "A user with this email already exists."}, status=400)
 
         otp = generate_otp()
 
-        # Send email BEFORE creating database record
         email_sent = send_otp_email(email, serializer.validated_data["name"], otp)
 
         if not email_sent:
             return Response({"error": "Failed to send verification email. Please check if the email address is valid."}, status=400)
 
-        # Temporarily store registration data in cache (expires in 15 mins)
         cache_key = f"registration_{email}"
         registration_data = {
             "data": serializer.validated_data,
@@ -139,32 +135,24 @@ def verify_otp(request):
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=404)
 
-    # Check cache for pending registration
     cache_key = f"registration_{email}"
     reg_data = cache.get(cache_key)
 
     if not reg_data:
-        # Check if user is already in DB (already verified or legacy)
         try:
             user = User.objects.get(email=email)
             if user.is_verified:
                 return Response({"error": "User is already verified. Please login."}, status=400)
-            # Unverified legacy user with no pending registration data in cache -
-            # nothing to verify against, so bail out cleanly instead of falling
-            # through to reg_data["otp"] below (which would be None).
             return Response({"error": "Your verification code has expired. Please register again."}, status=400)
         except User.DoesNotExist:
             return Response({"error": "No pending registration found for this email. Please register again."}, status=400)
 
-    # Verify OTP
     if reg_data["otp"] != otp:
         return Response({"error": "Invalid OTP"}, status=400)
 
-    # Check expiry (10 mins)
     if (timezone.now().timestamp() - reg_data["created_at"]) > 600:
         return Response({"error": "OTP has expired. Please register again."}, status=400)
 
-    # OTP Valid: NOW create the user in the database
     data = reg_data["data"]
     role = reg_data["role"]
 
@@ -179,13 +167,11 @@ def verify_otp(request):
             is_active=True
         )
 
-        # Additional fields based on role
         if role == 'driver':
             user.city = data.get("city")
             user.save()
             DriverProfile.objects.create(user=user)
 
-        # Clear cache
         cache.delete(cache_key)
 
         tokens = get_tokens(user)
@@ -214,13 +200,11 @@ def resend_otp(request):
     if not reg_data:
         return Response({"error": "No pending request found. Please start the process again."}, status=400)
 
-    # Generate new OTP and update cache
     new_otp = generate_otp()
     reg_data["otp"] = new_otp
     reg_data["created_at"] = timezone.now().timestamp()
     cache.set(cache_key, reg_data, timeout=900)
 
-    # For resend, we might not have request.user if it's registration
     name = reg_data.get("data", {}).get("name", "User")
     email_sent = send_otp_email(email, name, new_otp)
 
@@ -285,6 +269,11 @@ def request_password_change(request):
     if not new_password:
         return Response({"error": "New password is required"}, status=400)
 
+    try:
+        validate_password(new_password, user=request.user)
+    except DjangoValidationError as e:
+        return Response({"error": list(e.messages)}, status=400)
+
     otp = generate_otp()
     email_sent = send_otp_email(email, request.user.name, otp)
 
@@ -343,8 +332,10 @@ def reset_password(request):
     if not email or not otp or not new_password:
         return Response({"error": "Email, OTP, and new password are required."}, status=400)
 
-    if len(new_password) < 6:
-        return Response({"error": "Password must be at least 6 characters."}, status=400)
+    try:
+        validate_password(new_password)
+    except DjangoValidationError as e:
+        return Response({"error": list(e.messages)}, status=400)
 
     cache_key = f"forgot_password_otp_{email}"
     cached_data = cache.get(cache_key)
@@ -355,7 +346,6 @@ def reset_password(request):
     if cached_data["otp"] != otp:
         return Response({"error": "Invalid verification code."}, status=400)
 
-    # Check expiry (10 mins)
     if (timezone.now().timestamp() - cached_data["created_at"]) > 600:
         cache.delete(cache_key)
         return Response({"error": "Verification code has expired. Please request a new one."}, status=400)
